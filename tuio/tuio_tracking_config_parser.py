@@ -2,8 +2,8 @@ import json
 import os
 import cv2 as cv
 from typing import Dict, List
-from tuio.tuio_elements import TuioImagePattern, TuioPointer, TuioData
-from tuio.tuio_tracking_info import TuioTrackingInfo
+from core.tuio.tuio_elements import TuioImagePattern, TuioPointer, TuioData
+from core.tuio.tuio_tracking_info import TuioTrackingInfo
 
 
 class TuioTrackingConfigParser(object):
