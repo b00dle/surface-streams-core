@@ -3,12 +3,13 @@ import cv2 as cv
 import time
 import os
 import sys
-from processes import ProcessWrapper
-from opencv.cv_udp_video_receiver import CvUdpVideoReceiver
-from opencv.pattern_tracking import PatternTracking
-from tuio.tuio_sender import TuioSender
-from tuio.tuio_tracking_config_parser import TuioTrackingConfigParser
-from webutils import api_helper
+
+from core.processes import ProcessWrapper
+from core.opencv.cv_udp_video_receiver import CvUdpVideoReceiver
+from core.opencv.pattern_tracking import PatternTracking
+from core.tuio.tuio_sender import TuioSender
+from core.tuio.tuio_tracking_config_parser import TuioTrackingConfigParser
+from core.webutils import api_helper
 
 
 class SurfaceTracker(ProcessWrapper):

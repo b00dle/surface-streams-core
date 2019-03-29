@@ -1,4 +1,4 @@
-from processes import ProcessWrapper
+from core.processes import ProcessWrapper
 
 
 class ExecutableGstSurface(ProcessWrapper):

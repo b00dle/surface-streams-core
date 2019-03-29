@@ -1,17 +1,9 @@
 import argparse
 import time
 
-from pythonosc import udp_client
 from typing import List
-from tuio.tuio_elements import TuioImagePattern, TuioPointer, TuioData
-
-
-class OscSender(object):
-    def __init__(self, ip, port):
-        self._client = udp_client.SimpleUDPClient(ip, port)
-
-    def _send_message(self, path, arg_lst):
-        self._client.send_message(path, arg_lst)
+from core.tuio.tuio_elements import TuioImagePattern, TuioPointer, TuioData
+from core.tuio.osc_sender import OscSender
 
 
 def extract_bnd_args(pattern: TuioImagePattern):
@@ -108,19 +100,6 @@ def run_pattern_sender(ip="0.0.0.0", port=5001):
         p.set_x_pos(random.randint(0,15))
         p.set_y_pos(random.randint(0,7))
         client.send_pattern(p)
-        time.sleep(1)
-
-
-'''
-minimum example of osc sender
-'''
-
-
-def run(ip="127.0.0.1", port=5005):
-    client = udp_client.SimpleUDPClient(ip, port)
-
-    for x in range(10):
-        client.send_message("/foo", [x, "yo", True])
         time.sleep(1)
 
 

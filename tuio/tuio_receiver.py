@@ -1,11 +1,12 @@
 import argparse
 import time
 import multiprocessing
+
+from typing import Dict
 from pythonosc import dispatcher
 from pythonosc import osc_server
-from tuio.tuio_elements import TuioImagePattern, TuioBounds, TuioSymbol, TuioPointer, TuioData
-from tuio.osc_receiver import OscReceiver
-from typing import Dict
+from core.tuio.tuio_elements import TuioImagePattern, TuioBounds, TuioSymbol, TuioPointer, TuioData
+from core.tuio.osc_receiver import OscReceiver
 
 
 def bnd_handler(path, fixed_args, s_id, u_id, x_pos, y_pos, angle, width, height):

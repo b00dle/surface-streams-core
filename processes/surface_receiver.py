@@ -1,12 +1,13 @@
 import numpy as np
 import cv2 as cv
 import os
-from processes import ProcessWrapper
-from opencv.cv_udp_video_receiver import CvUdpVideoReceiver
-from tuio.tuio_receiver import TuioReceiver
-from tuio.tuio_sender import TuioSender
-from tuio.tuio_elements import TuioPointer, TuioData, TuioElement
-from webutils import api_helper
+
+from core.processes import ProcessWrapper
+from core.opencv.cv_udp_video_receiver import CvUdpVideoReceiver
+from core.tuio.tuio_receiver import TuioReceiver
+from core.tuio.tuio_sender import TuioSender
+from core.tuio.tuio_elements import TuioPointer, TuioData, TuioElement
+from core.webutils import api_helper
 
 
 class SurfaceReceiver(ProcessWrapper):

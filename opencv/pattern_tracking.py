@@ -5,9 +5,9 @@ import math
 import threading
 
 from scipy.spatial import distance as dist
-from opencv.sift_pattern import SiftPattern
-from opencv.flann_matcher import FlannMatcher
-from tuio.tuio_elements import TuioBounds
+from core.opencv.sift_pattern import SiftPattern
+from core.opencv.flann_matcher import FlannMatcher
+from core.tuio.tuio_elements import TuioBounds
 
 SIFT = cv.xfeatures2d.SIFT_create()
 MIN_MATCH_COUNT = 10
