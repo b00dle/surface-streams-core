@@ -4,7 +4,6 @@ gi.require_version("Gst", "1.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GstVideo", "1.0")
 from gi.repository import Gst, Gtk, GObject
-import streaming
 
 
 class GstPipeline(object):
@@ -38,15 +37,15 @@ class GstPipeline(object):
         if self.pipeline != None:
             self.pipeline.set_state(Gst.State.NULL)
 
-    def dump_graph(self):
+    def dump_graph(self, output_dir="."):
         """
         Produces .dot and .pdf file of pipeline graph.
         :return:
         """
-        dotfile = streaming.DEBUG_GRAPH_DIR+"/"+self.name+".dot"
+        dotfile = os.path.join(output_dir, self.name+".dot")
         if os.access(dotfile, os.F_OK):
             os.remove(dotfile)
-        pdffile = streaming.DEBUG_GRAPH_DIR+"/"+self.name+".pdf"
+        pdffile = os.path.join(output_dir, self.name+".pdf")
         Gst.debug_bin_to_dot_file(
             self.pipeline,
             Gst.DebugGraphDetails.ALL,
