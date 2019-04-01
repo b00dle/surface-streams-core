@@ -16,7 +16,8 @@ class UdpVideoSender(GstPipeline):
     def __init__(self, protocol="jpeg"):
         """
         Constructor.
-        :param protocol: Choose 'jpeg', 'vp8', 'mp4' or 'h264' to configure encoding of stream
+
+        :param protocol: Encoding of stream to send. Choose 'jpeg', 'vp8', 'vp9', 'mp4', 'h264' or 'h265'.
         """
         super().__init__("Udp-Video-Sender")
         self._protocol = protocol
@@ -26,13 +27,17 @@ class UdpVideoSender(GstPipeline):
         self.monitor.link(self.pipeline, "udp_sink")
 
     def cleanup(self):
-        """ Cleans up all instance refs. Should be called prior to __del__. """
+        """
+        BC override.
+        """
         self.monitor.unlink()
+        super().cleanup()
 
     def _init_ui(self):
         """
         Constructor helper to create UI structure.
-        :return:
+
+        :return: None
         """
         self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
         self.window.set_title("Udp Video Sender")
@@ -52,8 +57,9 @@ class UdpVideoSender(GstPipeline):
 
     def _init_gst_pipe(self):
         """
-        Constructor helper to create GStreamer pipeline.
-        :return:
+        Constructor helper to create GstPipeline.
+
+        :return: None
         """
         # create necessary elements
         self.filesrc = self.make_add_element("filesrc", "filesrc")
@@ -127,22 +133,28 @@ class UdpVideoSender(GstPipeline):
 
     def set_port(self, port):
         """
-        Sets stream destination port
+        Sets stream destination port.
+
         :param port: port of destination udp socket.
-        :return:
+
+        :return: None
         """
         self.udp_sink.set_property("port", port)
 
     def set_host(self, host):
         """
         Sets stream destination IP-address.
+
         :param host: IP of destination udp socket.
-        :return:
+
+        :return: None
         """
         self.udp_sink.set_property("host", host)
 
     def on_bus_message(self, bus, message):
-        """ Resets Start button based on playback/error state. """
+        """
+        BC override.
+        """
         t = message.type
         if t == Gst.MessageType.EOS:
             self._pipeline_stop()
@@ -163,9 +175,11 @@ class UdpVideoSender(GstPipeline):
 
     def start_stop(self, w):
         """
-        Toggles filesrc playback depending on current play state.
-        :param w:
-        :return:
+        Toggles filesrc playback depending on current play state. (connected to UI button click)
+
+        :param w: widget triggering event (unused)
+
+        :return: None
         """
         if self.button.get_label() == "Start":
             filepath = self.entry.get_text().strip()
@@ -180,9 +194,9 @@ class UdpVideoSender(GstPipeline):
 
     def _pipeline_stop(self):
         """
-        Helper function to trigger pipeline state change to NULL
-        and stop stats monitoring.
-        :return:
+        Helper function to trigger pipeline state change to NULL and stop stats monitoring.
+
+        :return: None
         """
         self.pipeline.set_state(Gst.State.NULL)
         self.button.set_label("Start")
@@ -190,9 +204,9 @@ class UdpVideoSender(GstPipeline):
 
     def _pipeline_start(self):
         """
-        Helper function to trigger pipeline state change to PLAYING
-        and start stats monitoring.
-        :return:
+        Helper function to trigger pipeline state change to PLAYING and start stats monitoring.
+
+        :return: None
         """
         self.button.set_label("Stop")
         self.pipeline.set_state(Gst.State.PLAYING)
@@ -200,11 +214,14 @@ class UdpVideoSender(GstPipeline):
 
     def _decoder_pad_added(self, decoder, pad):
         """
-        Callback function to link decoder src pad to queue sink pad
-        once the decoder receives input from the filesrc.
-        :param decoder: GstElement triggering this callback
+        Callback function to link decoder src pad to queue sink pad once the decoder receives input from the filesrc
+        (GstElement).
+
+        :param decoder: GstElement triggering this callback (unused)
+
         :param pad: pad of GstElement that was added.
-        :return:
+
+        :return: None
         """
         template_property = pad.get_property("template")
         template_name = template_property.name_template

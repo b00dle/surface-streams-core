@@ -11,11 +11,13 @@ from core import gstreamer
 class UdpVideoMixer(GstPipeline):
     """
     Class Managing SurfaceStreams GStreamer pipeline.
-    Can receive input from X clients over udp.
-    For each client the pipeline overlays ((using green keying)
-    X-1 client streams (excluding stream sent by client)
+
+    Can receive input from N clients over udp.
+
+    For each client the pipeline overlays (using green keying) X-1 client streams (excluding stream sent by client)
     and sends merged streams back to client.
-    Can also merge all X streams for each client.
+
+    Optionally, all X streams can be merged for a client. (see clients["mixing_mode"])
     """
 
     client_properties = [
@@ -39,10 +41,19 @@ class UdpVideoMixer(GstPipeline):
     def __init__(self, clients, default_mode="other", width=640, height=480):
         """
         Constructor.
-        :param clients: List of client dicts denoting client count and stream protocol
+
+        :param clients: List of client dicts denoting client stream settings.
+        For each client dict this instance will parse:
+          - clients[i]["mixing_mode"] = "all" / "other"
+            - "all" : overlay all streams (including clients own) when merging
+            - "other" : exclude clients own stream when merging
+          - clients[i]["video_protocol"] = "jpeg" / "vp8" / "vp9" / "mp4" / "h264" / "h265"
+
         :param default_mode: 'all' for overlaying all streams and
         'other' for merging other clients streams per client.
+
         :param width: pixel width of the output stream
+
         :param height: pixel height of the output stream
         """
         if default_mode != "other" and default_mode != "all":
@@ -108,9 +119,12 @@ class UdpVideoMixer(GstPipeline):
 
     def _create_src_bin(self, client, i):
         """
-        Helper function for constructor to build handling for stream input of ith client.
+        Helper function for constructor to build handling for stream input of 'i'th client.
+
         :param client: client dict descriptor
+
         :param i: client index (needed for naming purposes)
+
         :return: dict of GStreamer elements created
         """
         udp_src = self.make_add_element("udpsrc", "udpsrc" + str(i))
@@ -171,9 +185,12 @@ class UdpVideoMixer(GstPipeline):
     def _create_sink_bin(self, client, i):
         """
         Helper function for constructor to build handling for stream output of ith client.
-        :param client: client dict descriptor
+
+        :param client: client dictionary descriptor (see self.__init__(clients, ...))
+
         :param i: client index (needed for naming purposes)
-        :return: dict of GStreamer elements created
+
+        :return: dictionary of GStreamer elements created
         """
         queue_out = self.make_add_element("queue", "queue_out" + str(i))
         videoconvert = self.make_add_element("videoconvert", "mixer_convert" + str(i))
@@ -223,8 +240,7 @@ class UdpVideoMixer(GstPipeline):
 
     def cleanup(self):
         """
-        Should be called prior to __del__ on an instance to clean up refs.
-        :return:
+        BC override.
         """
         for monitor in self.monitors:
             monitor.unlink()
@@ -232,38 +248,51 @@ class UdpVideoMixer(GstPipeline):
 
     def set_in_port(self, port, client_idx):
         """
-        Sets port for udpsrc of client referenced by client_idx.
-        :param port: port of server udp socket
-        :param client_idx: num identifying client
-        :return:
+        Sets port for udpsrc (GstElement) of client referenced by client_idx.
+
+        :param port: port of server udp socket to receive input at.
+
+        :param client_idx: index identifying client in client list (as set by self.__init__(clients, ...))
+
+        :return: None
         """
         self.src_bins[client_idx]["udpsrc"].set_property("port", port)
 
     def set_out_address(self, address, client_idx):
         """
-        Sets destination IP-address for udpsink of client referenced by client_idx.
-        :param address: address of client udp address
-        :param client_idx: num identifying client
-        :return:
+        Sets destination IP-address for udpsink (GstElement) of client referenced by client_idx.
+
+        :param address: IP of client udp address
+
+        :param client_idx: index identifying client in client list (as set by self.__init__(clients, ...))
+
+        :return: None
         """
         self.sink_bins[client_idx]["udpsink"].set_property("host", address)
 
     def set_out_port(self, port, client_idx):
         """
         Sets destination port for udpsink of client referenced by client_idx.
-        :param port: port of client udp socket
+
+        :param port: port of client udp address
+
         :param client_idx: num identifying client
-        :return:
+
+        :return: None
         """
         self.sink_bins[client_idx]["udpsink"].set_property("port", port)
 
     def on_udp_bus_message(self, bus, message):
-        """ BC override """
+        """
+        BC override.
+        """
         print("### on_udp_bus_message")
         print("  > message.src", message.src.get_name())
 
     def on_bus_message(self, bus, message):
-        """ BC override """
+        """
+        BC override.
+        """
         t = message.type
         if t == Gst.MessageType.STREAM_START:
             print("stream start")

@@ -3,16 +3,50 @@ from core.processes import ProcessWrapper
 
 class ExecutableGstSurface(ProcessWrapper):
     """
-    Class used to encapsulate execution of SurfaceStreams reconstruction
-    and streaming data over udp channel.
+    Class used to encapsulate execution of Surface Streams reconstruction and streaming process. Reconstructed data is
+    send over udp using Gstreamer.
+
+    The idea here is, that the user can define the path to an executable able to produce a Gstreamer pipeline, which
+    forwards video output to a udpsink (GstElement). Thus, this class can be used as an input process of a client in
+    the Surface Streams 2.0 architecture.
+
+    Examples of such reconstruction & streaming applications can be found at https://github.com/floe/surface-streams.
+
+    The pipeline construction should support cmd calls of the following form (example):
+
+    <path-to>/my-gst-executable ! "jpegenc ! rtpgstpay ! udpsink port=9999"
+
+    (check out https://github.com/b00dle/surface-streams-client for full Surface Streams 2.0 client usage scenario.)
     """
 
     def __init__(self, server_port, my_port, server_ip="0.0.0.0", my_ip="0.0.0.0", executable_path="./realsense", pre_gst_args=["!"], server_stream_width=320, protocol="jpeg", monitor=True):
         """
         Constructor.
-        :param realsense_dir: directory where ./realsense executable can be found.
-        Program can be found and built at https://github.com/floe/surface-streams
-        :param protocol: encoding for udp stream. Choose 'jpeg', 'vp8', 'mp4' or 'h264'
+
+        :param server_port: udpsink (GstElement) port. In a Surface Streams 2.0 setup this should be where the server
+        expects frame input from the client.
+
+        :param my_port: secondary udpsink (GstElement) port. In a Surface Streams 2.0 setup this should be where the
+        pattern matching process expects input.
+
+        :param server_ip: udpsink (GstElement) ip. In a Surface Streams 2.0 setup this should be the server ip
+        establishing streaming between all clients.
+
+        :param my_ip: secondary udpsink (GstElement) ip. In a Surface Streams 2.0 setup this should be the ip address of
+        the pattern matching process. For local tracking scenarios choose 0.0.0.0, else choose remote machine ip.
+
+        :param executable_path: path to the executable capable of producing gstreamer output.
+        example: executable_path ! "jpegenc ! rtpgstpay ! udpsink port=9999"
+
+        :param pre_gst_args: Additional cmd parameters for executable call, added prior to gst pipeline.
+        example: executable_path *pre_gst_args "jpegenc ! rtpgstpay ! udpsink port=9999"
+
+        :param server_stream_width: width of the frame sent to server_ip:server_port
+
+        :param protocol: frame protocol encoding. Choose 'jpeg', 'vp8', 'vp9', 'mp4', 'h264' or 'h265'
+
+        :param monitor: if True an fpsdisplaysink (GstElement) will produce additional output of the pipeline produced
+        by the executable.
         """
         super().__init__()
         self._server_ip = server_ip
@@ -28,9 +62,7 @@ class ExecutableGstSurface(ProcessWrapper):
 
     def _compute_launch_command(self):
         """
-        Creates the subprocess creation call for realsense executable.
-        Includes a GStreamer pipeline for streaming reconstruction over udp.
-        :return:
+        BC override.
         """
         height = self._server_stream_width * 9/16.0
         gst_videoscale = "videoscale ! video/x-raw, " \

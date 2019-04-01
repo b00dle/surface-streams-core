@@ -3,7 +3,7 @@ from gi.repository import GObject
 
 class UdpStatsMonitor(object):
     """
-    Class monitoring bytes sent of a udpsink element this instance links to.
+    Class monitoring bytes sent from a udpsink element this instance links to.
     Produces console logs for monitored data. Can also store data to csv file.
     """
 
@@ -20,10 +20,10 @@ class UdpStatsMonitor(object):
 
     def link(self, pipeline, element_name):
         """
-        Links instance to a udpsink in a GstPipeline
-        :param pipeline: GstPipeline containing udpsink element to monitor
-        :param element_name: name of udpsink element to monitor.
-        :return:
+        Links this instance to a udpsink (GstElement) in given pipeline (GstPipeline)
+        :param pipeline: GstPipeline containing udpsink (GstElement) to monitor
+        :param element_name: name of udpsink (GstElement) to monitor.
+        :return: None
         """
         self.stop()
         self._pipeline = pipeline
@@ -31,8 +31,8 @@ class UdpStatsMonitor(object):
 
     def unlink(self):
         """
-        Cuts the link between this instance and the udpsink it is monitoring.
-        :return:
+        Cuts the link between this instance and the udpsink (GstElement) it is monitoring.
+        :return: None
         """
         self.stop()
         self._pipeline = None
@@ -41,7 +41,7 @@ class UdpStatsMonitor(object):
     def start(self):
         """
         Starts the monitoring process.
-        :return:
+        :return: None
         """
         if self._enabled:
             return
@@ -56,7 +56,7 @@ class UdpStatsMonitor(object):
     def stop(self):
         """
         Stops the monitoring process.
-        :return:
+        :return: None
         """
         if not self._enabled:
             return
@@ -64,8 +64,8 @@ class UdpStatsMonitor(object):
 
     def _update(self):
         """
-        Updates stats read from udpsink element linked to this instance.
-        :return:
+        Updates stats read from udpsink (GstElement) linked to this instance.
+        :return: None
         """
         new_stats = self.pull_stats_from_element()
         if new_stats is None or not self._enabled:
@@ -85,8 +85,8 @@ class UdpStatsMonitor(object):
 
     def pull_stats_from_element(self):
         """
-        Getter for currently linked udpsink GstElement stats
-        :return: current stats as dict
+        Getter for currently linked udpsink (GstElement) stats
+        :return: current stats as dictionary
         """
         if self._pipeline is None or self._element_name is None:
             self._enabled = False

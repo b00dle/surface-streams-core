@@ -13,9 +13,44 @@ from core.webutils import api_helper
 
 
 class SurfaceTracker(ProcessWrapper):
+    """
+    Encapsulates a process used for pattern matching on a video stream.
+
+    The process triggered:
+      - uses a FLANN based approach to match SIFT patterns on the input stream
+      - reads tracked patterns and matching result behavior from a JSON formatted file
+      - uploads image resources to the server based on behavior defined in JSON config
+      - sends tuio events to the server based on behavior defined in JSON config
+      - visualizes tracking results using an output window
+      - can refresh changes applied to the JSON config (hit 'r' when output window is focused)
+
+    The main code executed by starting this process can be found in the 'if __name__ == "__main__":' scope of the
+    processes/surface_tracker.py script.
+    """
+
     def __init__(self, pattern_scale=0.13, server_ip="0.0.0.0", server_tuio_port=5001,
                  frame_port=6666, frame_width=640, frame_protocol="jpeg",
                  patterns_config="", user_id=-1):
+        """
+        Constructor.
+
+        :param pattern_scale: default scaling factor for image resources loaded into matching patterns
+
+        :param server_ip: ip of the server to send output to.
+
+        :param server_tuio_port: port of the server to send tuio events to
+
+        :param frame_port: port at which this process is expecting video stream input
+
+        :param frame_width: width of the input stream. lower width increases matching performance, but decreases
+        accuracy.
+
+        :param frame_protocol: video stream protocol encoding. Choose 'jpeg', 'vp8', 'vp9', 'mp4', 'h264' or 'h265'
+
+        :param patterns_config: path to the JSON formatted tracking config. Check main class docs for attributes.
+
+        :param user_id: user_id to use when creating tuio elements (see tuio/tuio_elements.py)
+        """
         super().__init__()
         self._patterns_config = patterns_config
         self._pattern_scale = pattern_scale
@@ -28,6 +63,9 @@ class SurfaceTracker(ProcessWrapper):
         self._compute_launch_command()
 
     def _compute_launch_command(self):
+        """
+        BC override.
+        """
         args = []
         args.append("python3")
         args.append(os.path.abspath(__file__))
@@ -52,6 +90,16 @@ class SurfaceTracker(ProcessWrapper):
 
 
 def apply_tracking_config(config_parser: TuioTrackingConfigParser, tracker: PatternTracking):
+    """
+    Helper function for the main code of the SurfaceTracker process. Configures a pattern matching process with the data
+    extracted from a JSON config file.
+
+    :param config_parser: parser instance containing tracking configuration.
+
+    :param tracker: tracking process to be configured.
+
+    :return: dictionary of patterns, list of pattern id strings, dictionary of pointers, list of pointer id strings
+    """
     patterns = config_parser.get_patterns()
     pointers = config_parser.get_pointers()
     default_matching_scale = config_parser.get_default_matching_scale()
@@ -96,6 +144,9 @@ def apply_tracking_config(config_parser: TuioTrackingConfigParser, tracker: Patt
 
 
 if __name__ == "__main__":
+    """
+    MAIN CODE of the SurfaceTracker process.
+    """
     PATTERN_MATCH_SCALE = 0.13
     SERVER_IP = "0.0.0.0"
     SERVER_TUIO_PORT = 5001

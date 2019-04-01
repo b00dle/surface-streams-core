@@ -11,8 +11,48 @@ from core.webutils import api_helper
 
 
 class SurfaceReceiver(ProcessWrapper):
+    """
+    Encapsulates a process for receiving and displaying interaction data received over the Surface Streams 2.0
+    architecture.
+
+    The process triggered:
+      - receives (merged) stream data using a cv2.VideoCapture(<gst_pipe>) => video_stream
+      - receives & evaluates tuio events => tuio_stream
+      - overlays image patterns onto the video_stream based on the tuio_stream
+      - draws & erases colored paths onto the video_stream based on the tuio_stream
+      - displays result using cv2.imshow(...) => output_window
+      - sends tuio events into the streaming session based on mouse input on the output_window
+        - left click drag to draw
+        - right click drag to erase
+
+    The main code executed by starting this process can be found in the 'if __name__ == "__main__":' scope of the
+    processes/surface_receiver.py script.
+    """
+
     def __init__(self, frame_port, tuio_port, server_ip, width=640, height=480, ip="0.0.0.0",
                  video_protocol="jpeg", download_folder="CLIENT_DATA/", user_id=-1):
+        """
+        Constructor.
+
+        :param frame_port: port for the udpsrc (GstElement) to receive video stream at.
+
+        :param tuio_port: port for the tuio server (on this machine) to receive events at.
+
+        :param server_ip: ip of the server to send tuio events to
+
+        :param width: Initial with of the output window.
+
+        :param height: Initial height of the output window.
+
+        :param ip: ip for the tuio server (on this machine) to receive events at.
+
+        :param video_protocol: protocol of the video stream received. Choose 'jpeg', 'vp8', 'vp9', 'mp4', 'h264' or
+        'h265'
+
+        :param download_folder: directory at which image resources should be stored.
+
+        :param user_id: user id associated with this client. (as used by various classes in tuio/tuio_elements.py)
+        """
         super().__init__()
         self._frame_port = frame_port
         self._tuio_port = tuio_port
@@ -26,6 +66,9 @@ class SurfaceReceiver(ProcessWrapper):
         self._compute_launch_command()
 
     def _compute_launch_command(self):
+        """
+        BC override.
+        """
         args = []
         args.append("python3")
         args.append(os.path.abspath(__file__))
@@ -50,15 +93,36 @@ class SurfaceReceiver(ProcessWrapper):
         self._set_process_args(args)
 
     def set_port(self, port):
+        """
+        Setter for udpsrc (GstElement) port, which will receive video frames from the server.
+
+        :param port: port of udpsrc
+
+        :return: None
+        """
         self._frame_port = port
         self._compute_launch_command()
 
     def set_protocol(self, protocol):
+        """
+        Setter for video frame protocol encoding.
+
+        :param protocol: Choose 'jpeg', 'vp8', 'vp9', 'mp4', 'h264' or 'h265'
+
+        :return: None
+        """
         self._video_protocol = protocol
         self._compute_launch_command()
 
 
 def parse_color_bgr(elmt: TuioElement):
+    """
+    Helper function to return color from TuioElement.
+
+    :param elmt: TuioElement to extract color from
+
+    :return: (<blue>[0-255], <green>[0-255], <red>[0-255]) formatted color
+    """
     clr_data = elmt.get_value_by_mime_type("rgb")
     clr = (0, 255, 0)  # default
     if clr_data is not None:
@@ -69,6 +133,10 @@ def parse_color_bgr(elmt: TuioElement):
 
 
 if __name__ == "__main__":
+    """
+    MAIN CODE for the SurfaceReceiver process.
+    """
+
     import sys
 
     user_colors = []

@@ -3,7 +3,26 @@ from core import gstreamer
 
 
 class CvUdpVideoReceiver(object):
+    """
+    Implements a Gst based cv2.VideoCapture to receive video frames over udp, decode them, and return data on demand.
+
+    Can handle multiple stream encodings (jpeg, vp8, vp9, mp4, h264, h265).
+
+    (example) gst pipeline description created for 'jpeg':
+    gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, media=application ! queue !
+        rtpgstdepay ! jpegdec ! videoconvert ! gtksink
+    """
+
     def __init__(self, port, protocol="jpeg", width=-1):
+        """
+        Constructor.
+
+        :param port: Port to receive input frames at.
+
+        :param protocol: Protocol encoding of the input stream. Choose jpeg, vp8, vp9, mp4, h264 or h265.
+
+        :param width: alternate videoscale of the input stream. (-1 means, determined automatically)
+        """
         self._protocol = protocol
         self._port = port
         self._capture = None
@@ -48,10 +67,21 @@ class CvUdpVideoReceiver(object):
         self._capture = cv.VideoCapture(self._pipeline_description)
 
     def release(self):
+        """
+        Release cv2.VideoCapture(...). Call prior to destructing instance, to ensure all refs are cleared.
+
+        :return: None
+        """
         self._capture.release()
 
     def capture(self):
-        """ returns the currently captured frame or None if not capturing. """
+        """
+        Returns the most recent frame or None if nothing is being captured.
+
+        Output can be visualized using cv2.imshow(self.capture()).
+
+        :return: frame data as opencv image array.
+        """
         if not self._capture.isOpened():
             print("CvVideoReceiver\n  > Cannot capture from description")
             print(self._pipeline_description)
@@ -70,5 +100,10 @@ class CvUdpVideoReceiver(object):
         return frame
 
     def is_capturing(self):
+        """
+        Get the internal capturing state of cv2.VideoCapture(...) device used.
+
+        :return: bool
+        """
         return not self._capture_finished
 

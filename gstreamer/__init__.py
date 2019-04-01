@@ -1,3 +1,7 @@
+"""
+This script contains constant protocol based gstreamer caps to establish video stream receiving.
+"""
+
 JPEG_CAPS = "application/x-rtp, " \
             "media=(string)application, " \
             "clock-rate=(int)90000, " \

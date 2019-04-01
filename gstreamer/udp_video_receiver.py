@@ -10,11 +10,11 @@ from pprint import pprint
 
 class UdpVideoReceiver(GstPipeline):
     '''
-    Implements a GST pipeline to receive jpeg encoded rtp-gst frames over udp,
-    decode them, convert them to video and produce output into
-    an embedded gtksink window. Can handle multiple stream encodings (jpeg, vp8, mp4, h264).
+    Implements a GST pipeline to receive video frames over udp, decode them, and produce output into a gtksink window.
 
-    (default) gst pipeline description:
+    Can handle multiple stream encodings (jpeg, vp8, vp9, mp4, h264, h265).
+
+    (example) gst pipeline description created for 'jpeg':
     gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, media=application ! queue !
         rtpgstdepay ! jpegdec ! videoconvert ! gtksink
     '''
@@ -22,7 +22,8 @@ class UdpVideoReceiver(GstPipeline):
     def __init__(self, protocol="jpeg"):
         """
         Constructor.
-        :param protocol: encoding of received stream. Choose 'jpeg', 'vp8', 'mp4' or 'h264'
+
+        :param protocol: Encoding of stream to receive. Choose 'jpeg', 'vp8', 'vp9', 'mp4', 'h264' or 'h265'.
         """
         super().__init__("Udp-Video-Receiver")
         self._protocol = protocol
@@ -32,7 +33,8 @@ class UdpVideoReceiver(GstPipeline):
     def _init_ui(self):
         """
         Helper function for Constructor to init UI elements.
-        :return:
+
+        :return: None
         """
         self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
         self.window.set_title("Udp Video Receiver")
@@ -44,8 +46,9 @@ class UdpVideoReceiver(GstPipeline):
 
     def _init_gst_pipe(self):
         """
-        Helper function for Constructor to init GStreamer pipeline.
-        :return:
+        Helper function for Constructor to init GstPipeline.
+
+        :return: none
         """
         # create necessary elements
         self.udp_src = self.make_add_element("udpsrc", "udpsrc")
@@ -90,18 +93,17 @@ class UdpVideoReceiver(GstPipeline):
     def start(self, port):
         """
         Starts receiving stream data on given port.
+
         :param port: port of the running systems udp socket.
-        :return:
+
+        :return: None
         """
         self.udp_src.set_property("port", port)
         self.pipeline.set_state(Gst.State.PLAYING)
 
     def on_bus_message(self, bus, message):
         """
-        BC override
-        :param bus:
-        :param message:
-        :return:
+        BC override.
         """
         t = message.type
         if t == Gst.MessageType.STREAM_START:

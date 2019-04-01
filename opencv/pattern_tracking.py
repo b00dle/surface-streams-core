@@ -1,10 +1,8 @@
 import numpy as np
 import cv2 as cv
-import time
 import math
 import threading
 
-from scipy.spatial import distance as dist
 from core.opencv.sift_pattern import SiftPattern
 from core.opencv.flann_matcher import FlannMatcher
 from core.tuio.tuio_elements import TuioBounds
@@ -14,42 +12,25 @@ MIN_MATCH_COUNT = 10
 RATIO_TOLERANCE = 0.1
 
 
-def order_points(pts):
-    # sort the points based on their x-coordinates
-    xSorted = pts[np.argsort(pts[:, 0]), :]
-
-    # grab the left-most and right-most points from the sorted
-    # x-roodinate points
-    leftMost = xSorted[:2, :]
-    rightMost = xSorted[2:, :]
-
-    # now, sort the left-most coordinates according to their
-    # y-coordinates so we can grab the top-left and bottom-left
-    # points, respectively
-    leftMost = leftMost[np.argsort(leftMost[:, 1]), :]
-    (tl, bl) = leftMost
-
-    # now that we have the top-left coordinate, use it as an
-    # anchor to calculate the Euclidean distance between the
-    # top-left and right-most points; by the Pythagorean
-    # theorem, the point with the largest distance will be
-    # our bottom-right point
-    D = dist.cdist(tl[np.newaxis], rightMost, "euclidean")[0]
-    (br, tr) = rightMost[np.argsort(D)[::-1], :]
-
-    # return the coordinates in top-left, top-right,
-    # bottom-right, and bottom-left order
-    return np.array([tr, tl, bl, br], dtype="float32")
-
-
 class PatternTrackingThread(threading.Thread):
+    """
+    Thread performing FLANN based pattern matching (see opencv/flann_matcher.py) task on one image, taking into account
+    a list of SIFT patterns (see opencv/sift_pattern.py).
+    """
+
     def __init__(self, image=None, patterns=[]):
+        """
+        Constructor.
+
+        :param image: opencv image array to use as input for matching task. (set self.image to change later)
+
+        :param patterns: list of SiftPattern instances to match against frame. (see opencv/sift_pattern.py)
+        """
         super().__init__()
         self._flann = FlannMatcher()
         self._frame_pattern = SiftPattern(
             "THE-FRAME",
             cv.xfeatures2d.SIFT_create(
-                #nfeatures=2000,
                 edgeThreshold=12,
                 contrastThreshold=0.02,
                 sigma=0.8
@@ -59,10 +40,26 @@ class PatternTrackingThread(threading.Thread):
         self.image = image
         self.patterns = patterns
 
-    def vec_length(self, v):
+    @staticmethod
+    def vec_length(v):
+        """
+        Helper function to calc length of vector.
+
+        :param v: input vector
+
+        :return: length as float
+        """
         return math.sqrt(sum([v[i]*v[i] for i in range(0,len(v))]))
 
-    def get_rot(self, M):
+    @staticmethod
+    def get_rot(M):
+        """
+        Return the rotation angle of given 2D transformation mat.
+
+        :param M: 2D transformation matrix.
+
+        :return: angle as float.
+        """
         rad = -math.atan2(M[0][1], M[0][0])
         deg = math.degrees(rad)
         #print("========")
@@ -70,18 +67,52 @@ class PatternTrackingThread(threading.Thread):
         #print(deg)
         return deg
 
-    def get_trans(self, M):
+    @staticmethod
+    def get_trans(M):
+        """
+        Return the translation vector of given 2D transformation mat.
+
+        :param M: 2D transformation matrix
+
+        :return: list [x, y] of translation value
+        """
         return [M[0][2], M[1][2]]
 
-    def get_scale(self, M):
-        s_x = np.sign(M[0][0]) * self.vec_length([M[0][0], M[0][1]])
-        s_y = np.sign(M[1][1]) * self.vec_length([M[1][0], M[1][1]])
+    @staticmethod
+    def get_scale(M):
+        """
+        Return the scale vector of given 2D transformation mat.
+
+        :param M: 2D transformation matrix
+
+        :return: list [x, y] of scale value
+        """
+        s_x = np.sign(M[0][0]) * PatternTrackingThread.vec_length([M[0][0], M[0][1]])
+        s_y = np.sign(M[1][1]) * PatternTrackingThread.vec_length([M[1][0], M[1][1]])
         return [s_x, s_y]
 
-    def decompose_mat(self, M):
-        return {"T": self.get_trans(M), "R": self.get_rot(M), "S": self.get_scale(M)}
+    @staticmethod
+    def decompose_mat(M):
+        """
+        Return all affine transformation values for given 2D transformation mat.
+
+        :param M: 2D translation matrix
+
+        :return: {"T": [tx,ty], "R": angle, "S": [sx,sy]}
+        """
+        return {
+            "T": PatternTrackingThread.get_trans(M),
+            "R": PatternTrackingThread.get_rot(M),
+            "S": PatternTrackingThread.get_scale(M)
+        }
 
     def run(self):
+        """
+        Thread execution function. Performs FLANN based pattern matching on self.image and list of self.patterns (see
+        opencv/sift_pattern.py)
+
+        :return: list of tracking results (see PatternTrackingResult)
+        """
         self.results = []
         if self.image is None:
             return
@@ -120,36 +151,94 @@ class PatternTrackingThread(threading.Thread):
 
 
 class PatternTracking(object):
+    """
+    Offers sequential and concurrent implementation (using PatternTrackingThread) for FLANN based pattern matching (see
+    opencv/flann_matcher.py) using SIFT patterns (see opencv/sift_pattern.py).
+    """
+
     def __init__(self):
+        """
+        Constructor.
+        """
         self._flann = FlannMatcher()
         self.patterns = {}
         self._frame_pattern = SiftPattern("THE-FRAME")
 
-    def vec_length(self, v):
-        return math.sqrt(sum([v[i]*v[i] for i in range(0,len(v))]))
+    @staticmethod
+    def vec_length(v):
+        """
+        Helper function to calc length of vector.
 
-    def get_rot(self, M):
+        :param v: input vector
+
+        :return: length as float
+        """
+        return math.sqrt(sum([v[i] * v[i] for i in range(0, len(v))]))
+
+    @staticmethod
+    def get_rot(M):
+        """
+        Return the rotation angle of given 2D transformation mat.
+
+        :param M: 2D transformation matrix.
+
+        :return: angle as float.
+        """
         rad = -math.atan2(M[0][1], M[0][0])
         deg = math.degrees(rad)
+        # print("========")
+        # print(rad)
+        # print(deg)
         return deg
 
-    def get_trans(self, M):
+    @staticmethod
+    def get_trans(M):
+        """
+        Return the translation vector of given 2D transformation mat.
+
+        :param M: 2D transformation matrix
+
+        :return: list [x, y] of translation value
+        """
         return [M[0][2], M[1][2]]
 
-    def get_scale(self, M):
-        s_x = np.sign(M[0][0]) * self.vec_length([M[0][0], M[0][1]])
-        s_y = np.sign(M[1][1]) * self.vec_length([M[1][0], M[1][1]])
+    @staticmethod
+    def get_scale(M):
+        """
+        Return the scale vector of given 2D transformation mat.
+
+        :param M: 2D transformation matrix
+
+        :return: list [x, y] of scale value
+        """
+        s_x = np.sign(M[0][0]) * PatternTracking.vec_length([M[0][0], M[0][1]])
+        s_y = np.sign(M[1][1]) * PatternTracking.vec_length([M[1][0], M[1][1]])
         return [s_x, s_y]
 
-    def decompose_mat(self, M):
-        return {"T": self.get_trans(M), "R": self.get_rot(M), "S": self.get_scale(M)}
+    @staticmethod
+    def decompose_mat(M):
+        """
+        Return all affine transformation values for given 2D transformation mat.
+
+        :param M: 2D translation matrix
+
+        :return: {"T": [tx,ty], "R": angle, "S": [sx,sy]}
+        """
+        return {
+            "T": PatternTracking.get_trans(M),
+            "R": PatternTracking.get_rot(M),
+            "S": PatternTracking.get_scale(M)
+        }
 
     def track(self, image):
-        """ SIFT/FLANN based object recognition is performed on image.
-            frame should be a cv image. Matched patterns can be managed
-            using patterns variable of this instance.
-            if overlay_result is True then a frame will be drawn
-            around objects found. Returns a list of CvTrackingResults. """
+        """
+        Performs FLANN based pattern matching on self.image and list of self.patterns (see opencv/sift_pattern.py).
+        Sequential implementation. Call self.track_concurrent(...) for threaded execution.
+
+        :param image: input image to match against patterns.
+
+        :return: list of tracking results (see PatternTrackingResult)
+        """
         res = []
         self._frame_pattern.set_image(image)
         h, w, c = image.shape
@@ -186,6 +275,16 @@ class PatternTracking(object):
         return res
 
     def track_concurrent(self, image, num_threads=4):
+        """
+        Performs FLANN based pattern matching on self.image and list of self.patterns (see opencv/sift_pattern.py).
+        Threaded implementation. Call self.track(...) for sequential execution.
+
+        :param image: input image to match against patterns.
+
+        :param num_threads: number of threads to use for tracking work.
+
+        :return: list of tracking results (see PatternTrackingResult)
+        """
         threads = []
         patterns = [[] for i in range(0, num_threads)]
         temp = [p for p in self.patterns.values()]
@@ -207,6 +306,18 @@ class PatternTracking(object):
         return res
 
     def load_pattern(self, path, pattern_id=None, matching_scale=1.0):
+        """
+        Extend self.patterns, by instantiating new SiftPattern based on image data stored at given path.
+
+        :param path: filepath to load image data from.
+
+        :param pattern_id: predefined string to use as pattern id. if None, name of file will be used.
+
+        :param matching_scale: varying scale for pattern size. The smaller the pattern the faster the matching. The
+        larger the pattern the higher the precision.
+
+        :return: None
+        """
         if pattern_id is None:
             pattern_id = path.split("/")[-1]
         self.patterns[pattern_id] = SiftPattern(pattern_id, SIFT)
@@ -217,12 +328,30 @@ class PatternTracking(object):
             print("FAILURE: could not load image from path", path)
 
     def load_patterns(self, paths, pattern_ids=[], matching_scale=1.0):
+        """
+        Extend self.patterns, by instantiating new SiftPatterns based on image data stored at given paths.
+
+        :param paths: list of filepaths to load image data from.
+
+        :param pattern_ids: list of predefined strings to use as pattern_ids. length of list has to be equal to length
+        of paths.
+
+        :param matching_scale: varying scale for pattern size. The smaller the pattern the faster the matching. The
+        larger the pattern the higher the precision.
+
+        :return: None
+        """
         if len(paths) != len(pattern_ids):
             pattern_ids = [None for i in range(0, len(paths))]
         for i in range(0, len(paths)):
             self.load_pattern(paths[i], pattern_ids[i], matching_scale)
 
     def clear_patterns(self):
+        """
+        Remove all self.patterns.
+
+        :return: None.
+        """
         keys = [k for k in self.patterns.keys()]
         while len(self.patterns) > 0:
             del self.patterns[keys[0]]
@@ -230,72 +359,25 @@ class PatternTracking(object):
 
 
 class PatternTrackingResult(object):
-    """ Data Transfer object for Tracking Results. """
+    """
+    Data Transfer object for FLANN based SIFT pattern matching results. (see PatternTracking & PatternTrackingThread)
+    """
 
     def __init__(self, pattern_id=None, bnd=TuioBounds()):
+        """
+        Constructor.
+
+        :param pattern_id: string to use as pattern id
+
+        :param bnd: bounding box of matched extends. (see TuioBounds at tuio/tuio_elements.py)
+        """
         self.pattern_id = pattern_id
         self.bnd = bnd
 
     def is_valid(self):
+        """
+        Returns True if a pattern_id and a non-empty bounding box are set for this instance.
+
+        :return: bool
+        """
         return self.pattern_id is not None and not self.bnd.is_empty()
-
-
-def run(pattern_paths, video_path):
-    tracker = PatternTracking()
-    tracker.load_patterns(pattern_paths)
-
-    # setup video capture
-    cap = cv.VideoCapture(
-        "filesrc location=\"" + video_path + "\" ! decodebin ! videoconvert ! "
-                                             "videoscale ! video/x-raw, width=480, pixel-aspect-ratio=1/1 ! appsink"
-    )
-
-    if not cap.isOpened():
-        print("Cannot capture test src. Exiting.")
-        quit()
-
-    since_print = 0.0
-    fps_collection = []
-    track_num = 0
-    while True:
-        start_time = time.time()
-
-        ret, frame = cap.read()
-        if ret == False:
-            break
-
-        h, w, c = frame.shape
-
-        i = 0
-        for res in tracker.track(frame):
-            bnd_s = res.bnd.scaled(h, h)
-            box = cv.boxPoints((
-               (bnd_s.x_pos, bnd_s.y_pos),
-               (bnd_s.width, bnd_s.height),
-               bnd_s.angle
-            ))
-            frame = cv.polylines(frame, [np.int32(box)], True, 255, 3, cv.LINE_AA)
-            if i == track_num:
-                img = tracker.patterns[res.pattern_id].get_image().copy()
-                img_h, img_w = img.shape
-                pts = np.float32([[0, 0], [0, img_h - 1], [img_w - 1, img_h - 1], [img_w - 1, 0]]).reshape(-1, 1, 2)
-                M = cv.getPerspectiveTransform(pts, order_points(box))
-                img = cv.warpPerspective(img, M, (w, h))
-                cv.imshow("tracked-pattern", img)
-            i += 1
-
-        cv.imshow("CVtest", frame)
-
-        elapsed_time = time.time()-start_time
-        fps_collection.append(1.0/elapsed_time)
-        since_print += elapsed_time
-        if since_print > 1.0:
-            print("avg fps:", int(sum(fps_collection)/float(len(fps_collection))))
-            fps_collection = []
-            since_print = 0.0
-
-        key_pressed = cv.waitKey(1) & 0xFF
-        if key_pressed == ord('q'):
-            break
-        elif key_pressed == ord('w'):
-            track_num = (track_num + 1) % len(tracker.patterns)
