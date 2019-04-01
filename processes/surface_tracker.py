@@ -26,6 +26,8 @@ class SurfaceTracker(ProcessWrapper):
 
     The main code executed by starting this process can be found in the 'if __name__ == "__main__":' scope of the
     processes/surface_tracker.py script.
+
+    For structure of tracking config file see tuio/tuio_tracking_config_parser.py
     """
 
     def __init__(self, pattern_scale=0.13, server_ip="0.0.0.0", server_tuio_port=5001,

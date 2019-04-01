@@ -7,7 +7,61 @@ from core.tuio.tuio_tracking_info import TuioTrackingInfo
 
 
 class TuioTrackingConfigParser(object):
+    """
+    Parser for JSON formatted tracking config files.
+
+    Example structure of a config file:
+    {
+        "patterns" :
+        [
+            {
+                "type": "image",
+                "data":
+                {
+                    "tracking_info":
+                    {
+                        "matching_resource": "matching_image.jpg",
+                        "varying_upload_resource": "upload_image.jpg",
+                        "fixed_resource_scale": [0.2,0.2]
+                        "matching_scale": 0.2
+                    }
+                }
+            },
+            {
+                "type": "pen",
+                "data":
+                {
+                    "tracking_info":
+                    {
+                        "matching_resource": "pen_fiducial.jpg",
+                    }
+                    "rgb": [0,255,0],
+                    "radius": 10.0
+                }
+            }
+        ],
+        "default_matching_scale": 0.13
+    }
+
+    The example above creates two tracking patterns. The first one will create a matching pattern based on
+    matching_image.jpg uniformly scale by 0.2. If the pattern is found, upload_image.jpg is uploaded and sent with an
+    [x,y] scaling factor of [0.2,0.2]. The second one is a TuioPointer element with a type id of TuioPointer.tu_id_pen.
+    To determine the position of the pointer pen_fiducial.jpg will be matched and tracked at a matching scale of 0.13,
+    which is determined by the default_matching_scale. The lines drawn by this pen should be colored green, as
+    determined by the rgb tag. Additional TuioPointer types are pointer (for a colored dot) and eraser. Any attribute
+    added inside the data tag and outside of tracking info will be added to the TuioElement as arbitrary TuioData, using
+    the key as mime type and its value as data.
+
+    Note: paths denoted in any image resource fields should reference filepaths relative to the location of the config
+    file. This is to support remote tracking scenarios.
+    """
+
     def __init__(self, config_path=""):
+        """
+        Constructor.
+
+        :param config_path: path to JSON formatted config file.
+        """
         self._patterns = {}
         self._pattern_tracking_info = {}
         self._pointers = {}
@@ -19,17 +73,41 @@ class TuioTrackingConfigParser(object):
         self.parse()
 
     def set_config_path(self, config_path):
+        """
+        Setter for JSON formatted config file path. Instance will automatically parse given file.
+
+        :param config_path: filepath to tracking configuration file.
+
+        :return: None
+        """
         self._config_path = config_path
         self._resource_dir = os.path.dirname(self._config_path)
         self.parse()
 
     def get_resource_dir(self):
+        """
+        Returns the directory where resource files are located.
+
+        :return: str
+        """
         return self._resource_dir
 
     def get_full_resource_path(self, resource_filename):
+        """
+        Return the joined path of resource dir (location of the config file loaded) and given filename.
+
+        :param resource_filename: name of the file to join with resource dir
+
+        :return: full path str
+        """
         return os.path.join(self._resource_dir, resource_filename)
 
     def get_full_resource_paths(self):
+        """
+        Return the full paths for all resources loaded from the config file.
+
+        :return: list of filepaths as str
+        """
         res = []
         for pattern in self._patterns.values():
             info = self.get_pattern_tracking_info(pattern.get_s_id())
@@ -41,31 +119,90 @@ class TuioTrackingConfigParser(object):
             res.append(self.get_full_resource_path(info.matching_resource))
         return res
 
-    def get_patterns(self) -> Dict[str, TuioImagePattern]:
+    def get_patterns(self) -> Dict[int, TuioImagePattern]:
+        """
+        Getter to dict of patterns loaded from config file.
+
+        :return: dict
+        """
         return self._patterns
 
     def get_pattern(self, pattern_s_id: int) -> TuioImagePattern:
+        """
+        Get pattern referenced by given key
+
+        :param pattern_s_id: session id identifying pattern.
+
+        :return: TuioImagePattern
+        """
         return self._patterns[pattern_s_id]
 
-    def get_pointers(self) -> Dict[str, TuioPointer]:
+    def get_pointers(self) -> Dict[int, TuioPointer]:
+        """
+        Getter to dict of all pointers loaded from config file.
+
+        :return: dict
+        """
         return self._pointers
 
     def get_pointer(self, pointer_s_id: int) -> TuioPointer:
+        """
+        Get pointer referenced by given key
+
+        :param pointer_s_id: session id identifying pointer.
+
+        :return: TuioPointer
+        """
         return self._pointers[pointer_s_id]
 
     def get_pattern_tracking_info(self, pattern_s_id: int) -> TuioTrackingInfo:
+        """
+        Get tracking info extracted for pattern identified by given key.
+
+        :param pattern_s_id: session id identifying pattern.
+
+        :return: TuioTrackingInfo
+        """
         return self._pattern_tracking_info[pattern_s_id]
 
-    def get_pointer_tracking_info(self, pattern_s_id: int) -> TuioTrackingInfo:
-        return self._pointer_tracking_info[pattern_s_id]
+    def get_pointer_tracking_info(self, pointer_s_id: int) -> TuioTrackingInfo:
+        """
+        Get tracking info extracted for pointer identified by given key.
+
+        :param pointer_s_id: session id identifying pointer.
+
+        :return: TuioTrackingInfo
+        """
+        return self._pointer_tracking_info[pointer_s_id]
 
     def get_default_matching_scale(self) -> float:
+        """
+        Get default matching scale defined in config file.
+
+        :return: float. defaults to 0.0 if nothing defined.
+        """
         return self._default_matching_scale
 
     def has_fixed_resource_scale(self, pattern_s_id: int) -> bool:
+        """
+        Returns True if a fixed_resource_scale is defined and set for pattern identified by given key. False otherwise.
+
+        :param pattern_s_id: session id identifying pattern.
+
+        :return: bool
+        """
         return len(self.get_pattern_tracking_info(pattern_s_id).fixed_resource_scale) == 2
 
-    def get_image_resource_size(self, pattern_s_id: int) -> List[int]:
+    def get_image_resource_size(self, pattern_s_id: int) -> List[str]:
+        """
+        Returns [width, height] of image resource identified by pattern. Default resource path is matching_resource of
+        tracking_info tag in config. If varying_upload_resource is defined for pattern, respective image extends are
+        adjusted.
+
+        :param pattern_s_id: session id identifying pattern.
+
+        :return:
+        """
         if pattern_s_id in self._image_resource_sizes:
             return self._image_resource_sizes[pattern_s_id]
         elif pattern_s_id not in self._patterns:
@@ -84,7 +221,11 @@ class TuioTrackingConfigParser(object):
         return res
 
     def parse(self):
-        """ Reads data from json formatted config file. """
+        """
+        Reads and evaluates data from json formatted config file set on this instance.
+
+        :return: None
+        """
         self._patterns = {}
         self._pattern_tracking_info = {}
         self._pointers = {}
@@ -116,6 +257,15 @@ class TuioTrackingConfigParser(object):
         self._default_matching_scale = float(json_data["default_matching_scale"])
 
     def _parse_add_element(self, elmnt_type, elmnt_data):
+        """
+        Helper function for parse.
+
+        :param elmnt_type: value of the type tag in a pattern dict (see class docs)
+
+        :param elmnt_data: value of the data tag in a pattern dict (see class docs)
+
+        :return: Success of parsing element data
+        """
         info = None
         if "tracking_info" in elmnt_data:
             info = TuioTrackingInfo(**elmnt_data["tracking_info"])
@@ -163,6 +313,16 @@ class TuioTrackingConfigParser(object):
 
     @staticmethod
     def validate_root_structure(json_data):
+        """
+        Validates structure of JSON file on a shallow level. required keys currently are 'patterns',
+        'default_matching_scale'
+
+        # TODO: extend or remove
+
+        :param json_data: data of json document
+
+        :return: True if wellformed, False otherwise
+        """
         required_keys = ["patterns", "default_matching_scale"]
         for rk in required_keys:
             if rk not in json_data:
@@ -171,5 +331,12 @@ class TuioTrackingConfigParser(object):
 
     @staticmethod
     def read_json(config_path):
+        """
+        Opens will at path and loads json content.
+
+        :param config_path: filepath string
+
+        :return: JSON dict
+        """
         file_content = open(config_path).read()
         return json.loads(file_content)

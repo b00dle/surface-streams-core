@@ -56,6 +56,9 @@ class WebcamSurface(ProcessWrapper):
         self._compute_launch_command()
 
     def _compute_launch_command(self):
+        """
+        BC override.
+        """
         gst_videoscale = "videoscale ! " \
                          "video/x-raw, width=" + str(self._server_stream_width) + ", " \
                          "pixel-aspect-ratio=1/1"

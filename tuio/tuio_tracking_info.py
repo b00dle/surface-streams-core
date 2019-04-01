@@ -1,4 +1,9 @@
 class TuioTrackingInfo(object):
+    """
+    Data transfer object encapsulating tracking info in a JSON formatted config file. See
+    tuio/tuio_tracking_config_parser.py
+    """
+
     def __init__(self, **kwargs):
         self.matching_resource = ""
         if "matching_resource" in kwargs:

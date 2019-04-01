@@ -2,15 +2,28 @@ from pythonosc import udp_client
 
 
 class OscSender(object):
+    """
+    Base class for sending OSC messages over udp channel.
+    """
+
     def __init__(self, ip, port):
+        """
+        Constructor.
+
+        :param ip: ip to send messages to.
+
+        :param port: port to send messages to.
+        """
         self._client = udp_client.SimpleUDPClient(ip, port)
 
     def _send_message(self, path, arg_lst):
+        """
+        Sends message to OSC server host.
+
+        :param path: OSC path (used by dispatcher on receiver side)
+
+        :param arg_lst: argument list
+
+        :return: None
+        """
         self._client.send_message(path, arg_lst)
-
-def run(ip="127.0.0.1", port=5005):
-    client = udp_client.SimpleUDPClient(ip, port)
-
-    for x in range(10):
-        client.send_message("/foo", [x, "yo", True])
-        time.sleep(1)

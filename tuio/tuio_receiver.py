@@ -10,6 +10,30 @@ from core.tuio.osc_receiver import OscReceiver
 
 
 def bnd_handler(path, fixed_args, s_id, u_id, x_pos, y_pos, angle, width, height):
+    """
+    Static message handler for tuio 2.0 bnd messages. All extracted TuioBounds will be added to message queue in
+    fixed_args.
+
+    :param path: unused path (should be /tuio2/bnd)
+
+    :param fixed_args: fixed arguments (fixed_args[0] should be message queue)
+
+    :param s_id: session id
+
+    :param u_id: user id
+
+    :param x_pos: x position
+
+    :param y_pos: y position
+
+    :param angle: rotation angle
+
+    :param width: width
+
+    :param height: height
+
+    :return: None
+    """
     msg_queue = fixed_args[0]
     bnd = TuioBounds(
         x_pos=x_pos, y_pos=y_pos,
@@ -19,6 +43,28 @@ def bnd_handler(path, fixed_args, s_id, u_id, x_pos, y_pos, angle, width, height
 
 
 def sym_handler(path, fixed_args, s_id, u_id, tu_id, c_id, sym_type, sym_value):
+    """
+    Static message handler for tuio 2.0 sym messages. All extracted TuioSymbol will be added to message queue in
+    fixed_args.
+
+    :param path: unused path (should be /tuio2/bnd)
+
+    :param fixed_args: fixed arguments (fixed_args[0] should be message queue)
+
+    :param s_id: session id
+
+    :param u_id: user id
+
+    :param tu_id: type id
+
+    :param c_id: component id
+
+    :param sym_type: symbol identifier type e.g. uuid
+
+    :param sym_value: symbol identifier value
+
+    :return: None
+    """
     if sym_type != "uuid":
         raise ValueError("FAILURE: sym_type must be 'uuid'\n  > got:", sym_type)
     msg_queue = fixed_args[0]
@@ -27,6 +73,36 @@ def sym_handler(path, fixed_args, s_id, u_id, tu_id, c_id, sym_type, sym_value):
 
 
 def ptr_handler(path, fixed_args, s_id, u_id, tu_id, c_id, x_pos, y_pos, angle, shear, radius, press):
+    """
+    Static message handler for tuio 2.0 ptr messages. All extracted TuioPointer will be added to message queue in
+    fixed_args.
+
+    :param path: unused path (should be /tuio2/bnd)
+
+    :param fixed_args: fixed arguments (fixed_args[0] should be message queue)
+
+    :param s_id: session id
+
+    :param u_id: user id
+
+    :param tu_id: type id
+
+    :param c_id: component id
+
+    :param x_pos: x position
+
+    :param y_pos: y position
+
+    :param angle: rotation angle
+
+    :param shear: shear factor
+
+    :param radius: radius
+
+    :param press: press state (bool)
+
+    :return: None
+    """
     msg_queue = fixed_args[0]
     ptr = TuioPointer(
         s_id=s_id, u_id=u_id, tu_id=tu_id, c_id=c_id,
@@ -37,13 +113,46 @@ def ptr_handler(path, fixed_args, s_id, u_id, tu_id, c_id, x_pos, y_pos, angle, 
 
 
 def dat_handler(path, fixed_args, s_id, u_id, c_id, mime_type, data):
+    """
+    Static message handler for tuio 2.0 dat messages. All extracted TuioData will be added to message queue in
+    fixed_args.
+
+    :param path: unused path (should be /tuio2/bnd)
+
+    :param fixed_args: fixed arguments (fixed_args[0] should be message queue)
+
+    :param s_id: session id
+
+    :param u_id: user id
+
+    :param c_id: component id
+
+    :param mime_type: mime type of data
+
+    :param data: data of mime type
+
+    :return: None
+    """
     msg_queue = fixed_args[0]
     dat = TuioData(mime_type=mime_type, data=data)
     msg_queue.put({"s_id": s_id, "u_id": u_id, "c_id": c_id, "dat": dat})
 
 
 class TuioDispatcher(dispatcher.Dispatcher):
+    """
+    Extends pythonosc.dispatcher.Dispatcher mapping handlers for the following paths:
+      - /tuio2/bnd, /tuio2/sym, /tuio2/ptr, /tuio2/dat
+    Results of message handling will be written to respective message queue.
+    """
+
     def __init__(self, bnd_queue=multiprocessing.Queue(), sym_queue=multiprocessing.Queue(), ptr_queue=multiprocessing.Queue(), dat_queue=multiprocessing.Queue()):
+        """
+        Constructor.
+        :param bnd_queue: message queue TuioBounds are written to from /tuio2/bnd handler
+        :param sym_queue: message queue TuioSymbol are written to from /tuio2/sym handler
+        :param ptr_queue: message queue TuioPointer are written to from /tuio2/ptr handler
+        :param dat_queue: message queue TuioData are written to from /tuio2/dat handler
+        """
         super().__init__()
         self.bnd_queue = bnd_queue
         self.sym_queue = sym_queue
@@ -56,9 +165,22 @@ class TuioDispatcher(dispatcher.Dispatcher):
 
 
 class TuioReceiver(OscReceiver):
-    # TODO: different key for patterns and pointers
-    # s_id will not be unique as soon as we have different u_ids
+    """
+    Extends OscReceiver (see tuio/osc_receiver.py), using TuioDispatcher to handle tuio 2.0 bnd, sym, ptr & dat
+    messages. Elements received can be updated from dispatcher message queues on demand.
+    """
+
     def __init__(self, ip, port, element_timeout=1.0):
+        """
+        Constructor.
+
+        :param ip: ip the OSC server listens at
+
+        :param port: port the OSC server listens at
+
+        :param element_timeout: expiration time (seconds) for element updates. Elements exceeding this time will be
+        removed.
+        """
         self._dispatcher = TuioDispatcher()
         super().__init__(ip, port, self._dispatcher)
         self._patterns = {}
@@ -68,15 +190,12 @@ class TuioReceiver(OscReceiver):
         self._element_timeout = element_timeout
 
     def update_elements(self):
-        """ Updates all patterns given the unprocessed messages
-            stored by the dispatcher. Returns an update log,
-            listing all updated_bnd s_ids and all
-            updated_sim s_ids changed that way.
-            Structure:
-            update_log = {
-                "bnd": [num1, ..., numX],
-                "sym": [num1, ..., numY]
-            }"""
+        """
+        Updates all patterns given the unprocessed messages stored by the dispatcher. Returns an update log, listing all
+        updated sym, bnd, ptr & dat element keys changed that way.
+
+        :return: dict ({"bnd": [k1,...,kX], "sym": [k1, ..., kY], "ptr": [k1, ..., kZ], "dat": [k1, ..., kN]})
+        """
         update_log = {"bnd": [], "sym": [], "ptr": [], "dat": []}
         time_now = time.time()
         # extract bnd updates
@@ -92,6 +211,15 @@ class TuioReceiver(OscReceiver):
         return update_log
 
     def _process_bnd_updates(self, update_log, timestamp):
+        """
+        Helper function for self.update_elements() processing pending messages from the /tuio2/bnd handler.
+
+        :param update_log: update log to be extended (as returned by self.update_elements)
+
+        :param timestamp: time stamp for the update
+
+        :return: None
+        """
         while not self._dispatcher.bnd_queue.empty():
             bnd_msg = self._dispatcher.bnd_queue.get()
             s_id = bnd_msg["s_id"]
@@ -105,6 +233,15 @@ class TuioReceiver(OscReceiver):
                 update_log["bnd"].append(key)
 
     def _process_sym_updates(self, update_log, timestamp):
+        """
+        Helper function for self.update_elements() processing pending messages from the /tuio2/sym handler.
+
+        :param update_log: update log to be extended (as returned by self.update_elements)
+
+        :param timestamp: time stamp for the update
+
+        :return: None
+        """
         while not self._dispatcher.sym_queue.empty():
             sym_msg = self._dispatcher.sym_queue.get()
             s_id = sym_msg["s_id"]
@@ -120,6 +257,15 @@ class TuioReceiver(OscReceiver):
                     update_log["sym"].append(key)
 
     def _process_ptr_updates(self, update_log, timestamp):
+        """
+        Helper function for self.update_elements() processing pending messages from the /tuio2/ptr handler.
+
+        :param update_log: update log to be extended (as returned by self.update_elements)
+
+        :param timestamp: time stamp for the update
+
+        :return: None
+        """
         while not self._dispatcher.ptr_queue.empty():
             ptr_msg = self._dispatcher.ptr_queue.get()
             ptr = ptr_msg["ptr"]
@@ -135,6 +281,15 @@ class TuioReceiver(OscReceiver):
                 update_log["ptr"].append(key)
 
     def _process_dat_updates(self, update_log, timestamp):
+        """
+        Helper function for self.update_elements() processing pending messages from the /tuio2/dat handler.
+
+        :param update_log: update log to be extended (as returned by self.update_elements)
+
+        :param timestamp: time stamp for the update
+
+        :return: None
+        """
         while not self._dispatcher.dat_queue.empty():
             dat_msg = self._dispatcher.dat_queue.get()
             dat = dat_msg["dat"]
@@ -145,6 +300,16 @@ class TuioReceiver(OscReceiver):
                 update_log["dat"].append(key)
 
     def _remove_expired_elements(self, timestamp):
+        """
+        Helper function for self.update_elements() removing all expired elements which have exceeded a fixed time
+        threshold since their last update.
+
+        :param update_log: update log to be extended (as returned by self.update_elements)
+
+        :param timestamp: time stamp for the update
+
+        :return: None
+        """
         if self._element_timeout > 0.0:
             pattern_keys = [key for key in self._patterns.keys()]
             for key in pattern_keys:
@@ -160,98 +325,45 @@ class TuioReceiver(OscReceiver):
                     del self._pointer_update_times[k]
 
     def get_pattern(self, key) -> TuioImagePattern:
+        """
+        Getter for TuioImagePattern referenced by given key.
+
+        :param key: string key identifying pattern.
+
+        :return: TuioImagePattern
+        """
         return self._patterns[key]
 
-    def get_patterns(self, keys=[]) -> Dict[int, TuioImagePattern]:
+    def get_patterns(self, keys=[]) -> Dict[str, TuioImagePattern]:
+        """
+        Returns a dict of all TuioImagePatterns identified by key list.
+
+        :param keys: keys to search for in dict of patterns maintained by this instance.
+
+        :return: dict
+        """
         if len(keys) == 0:
             return self._patterns
         return {key: self.get_pattern(key) for key in keys}
 
     def get_pointer(self, key) -> TuioPointer:
+        """
+        Getter for TuioPointer referenced by given key.
+
+        :param key: string key identifying pointer.
+
+        :return: TuioPointer
+        """
         return self._pointers[key]
 
     def get_pointers(self, keys=[]) -> Dict[str, TuioPointer]:
+        """
+        Returns a dict of all TuioPointer identified by key list.
+
+        :param keys: keys to search for in dict of pointers maintained by this instance.
+
+        :return: dict
+        """
         if len(keys) == 0:
             return self._pointers
         return {key: self.get_pointer(key) for key in keys}
-
-
-def run_pattern_receiver(ip="0.0.0.0", port=5004):
-    server = TuioReceiver(ip, port)
-    server.start()
-
-    while True:
-        update_log = server.update_elements()
-
-        nothing_updated = True
-        if len(update_log["bnd"]) > 0:
-            nothing_updated = False
-            print("Received BND update\n  > ", server.get_patterns(update_log["bnd"]))
-        if len(update_log["sym"]) > 0:
-            nothing_updated = False
-            print("Received SYM update\n  > ", server.get_patterns(update_log["sym"]))
-        if len(update_log["ptr"]) > 0:
-            nothing_updated = False
-            print("Received PTR update\n  > ", server.get_pointers(update_log["ptr"]))
-        if nothing_updated:
-            print("Waiting for BND or SYM update")
-
-        time.sleep(1)
-
-
-'''
-minimum example of osc receiver
-'''
-
-
-def _print_foo_handler(unused_addr, fixed_args, *lst):
-    fixed_args[0].put([unused_addr, lst])
-
-
-def _print_foo_handler_fixed(unused_addr, fixed_args, num, str, bool):
-    fixed_args[0].put([unused_addr, num, str, bool])
-
-
-def _print_foo_handler_mixed(unused_addr, fixed_args, num, *lst):
-    fixed_args[0].put([unused_addr, num, lst])
-
-
-def run(ip="127.0.0.1", port=5005):
-    msg_queue = multiprocessing.Queue()
-
-    osc_disp = dispatcher.Dispatcher()
-    osc_disp.map("/foo", _print_foo_handler_mixed, msg_queue)
-
-    server = osc_server.ThreadingOSCUDPServer((ip, port), osc_disp)
-    print("Serving on {}".format(server.server_address))
-    server_process = multiprocessing.Process(target=server.serve_forever)
-    server_process.start()
-
-    # this piece should be embedded into the frame by frame reconstruction on the client side
-    while True:
-        print("WAITING FOR MESSAGE")
-
-        while not msg_queue.empty():
-            print(msg_queue.get())
-
-        time.sleep(1)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--ip",
-        default="127.0.0.1",
-        help="The ip to listen on")
-
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=5005,
-        help="The port to listen on"
-    )
-
-    args = parser.parse_args()
-
-    run(args.ip, args.port)

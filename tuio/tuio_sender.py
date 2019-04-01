@@ -7,6 +7,13 @@ from core.tuio.osc_sender import OscSender
 
 
 def extract_bnd_args(pattern: TuioImagePattern):
+    """
+    Extracts list of bounds properties from TuioImagePattern, as formatted in tuio2 bnd message.
+
+    :param pattern: TuioImagePattern containing bounds to extract data from
+
+    :return: list of properties
+    """
     return [
         pattern.get_s_id(),
         pattern.get_u_id(),
@@ -19,6 +26,13 @@ def extract_bnd_args(pattern: TuioImagePattern):
 
 
 def extract_sym_args(pattern: TuioImagePattern):
+    """
+    Extracts list of symbold identifier properties from TuioImagePattern, as formatted in tuio2 sym message.
+
+    :param pattern: TuioImagePattern containing symbol identifier to extract data from
+
+    :return: list of properties
+    """
     return [
         pattern.get_s_id(),
         pattern.get_u_id(),
@@ -30,6 +44,13 @@ def extract_sym_args(pattern: TuioImagePattern):
 
 
 def extract_ptr_args(pointer: TuioPointer):
+    """
+    Extracts list of properties from TuioPointer, as formatted in tuio2 ptr message.
+
+    :param pattern: TuioPointer to extract data from
+
+    :return: list of properties
+    """
     return [
         pointer.s_id,
         pointer.u_id,
@@ -45,6 +66,13 @@ def extract_ptr_args(pointer: TuioPointer):
 
 
 def extract_dat_args(data: TuioData):
+    """
+    Extracts list of data properties from TuioData, as formatted in tuio2 dat message.
+
+    :param pattern: TuioData to extract data from
+
+    :return: list of properties
+    """
     return [
         data.mime_type,
         data.data
@@ -52,19 +80,51 @@ def extract_dat_args(data: TuioData):
 
 
 class TuioSender(OscSender):
+    """
+    Extends OscSender (see tuio/osc_sender.py) to send tuio 2.0 bnd, sym, ptr & dat messages.
+    """
+
     def __init__(self, ip, port):
+        """
+        Constructor.
+
+        :param ip: ip to send messages to.
+
+        :param port: port to send messages to.
+        """
         super().__init__(ip, port)
 
     def send_pattern(self, pattern: TuioImagePattern):
+        """
+        Constructs and sends a bnd & sym message from a TuioImagePattern
+
+        :param pattern: TuioImagePattern to send
+
+        :return: None
+        """
         if pattern.is_valid():
             self._send_message("/tuio2/bnd", extract_bnd_args(pattern))
             self._send_message("/tuio2/sym", extract_sym_args(pattern))
 
     def send_patterns(self, patterns: List[TuioImagePattern]):
+        """
+        Constructs and send bnd & sym messages from list of TuioImagePattern instances.
+
+        :param patterns: list of TuioImagePattern instances to send
+
+        :return: None
+        """
         for p in patterns:
             self.send_pattern(p)
 
     def send_pointer(self, pointer: TuioPointer):
+        """
+        Constructs and sends a ptr & dat message from a TuioPointer
+
+        :param pointer: TuioPointer to send
+
+        :return: None
+        """
         if not pointer.is_empty():
             self._send_message("/tuio2/ptr", extract_ptr_args(pointer))
             for d in pointer.get_data():
@@ -74,48 +134,12 @@ class TuioSender(OscSender):
                 self._send_message("/tuio2/dat", args)
 
     def send_pointers(self, pointers: List[TuioPointer]):
+        """
+        Constructs and send ptr & dat messages from list of TuioPointer instances.
+
+        :param pointers: list of TuioPointer instances to send
+
+        :return: None
+        """
         for p in pointers:
             self.send_pointer(p)
-
-
-def run_pattern_sender(ip="0.0.0.0", port=5001):
-    from tuio.tuio_elements import TuioBounds, TuioSymbol
-    import random
-    import uuid
-
-    patterns = [TuioImagePattern(u_id=random.randint(0, 500))
-                for i in range(0, 10)]
-    for p in patterns:
-        x = random.randint(0, 10)
-        y = 10 - x
-        p.set_bnd(TuioBounds(x, y, 0, 10, 10))
-        p.set_sym(TuioSymbol(str(uuid.uuid4())))
-
-    client = TuioSender(ip, port)
-    client.send_patterns(patterns)
-
-    for x in range(0,10):
-        p_idx = random.randint(0, len(patterns)-1)
-        p = patterns[p_idx]
-        p.set_x_pos(random.randint(0,15))
-        p.set_y_pos(random.randint(0,7))
-        client.send_pattern(p)
-        time.sleep(1)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--ip",
-        default="127.0.0.1",
-        help="The ip of the OSC server"
-    )
-
-    parser.add_argument(
-        "--port", type=int, default=5005,
-        help="The port the OSC server is listening on")
-
-    args = parser.parse_args()
-
-    run(args.ip, args.port)
