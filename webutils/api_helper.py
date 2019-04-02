@@ -1,3 +1,8 @@
+"""
+This script holds convenience functionality to access http functionality on Surface Streams 2.0 server and Surface
+Streams 2.0 remote tracking server. The respective repos can be found at
+https://github.com/b00dle/surface-streams-server and https://github.com/b00dle/surface-streams-remote-tracker
+"""
 import requests
 import os
 
@@ -7,6 +12,16 @@ SERVER_TUIO_PORT = 5001
 
 
 def upload_image(path):
+    """
+    Helper function to upload image resource to Surface Streams 2.0 server using ReST API calls. After the upload is
+    done the resource can be reached at: "http://" + SERVER_IP + ":" + str(SERVER_HTTP_PORT) + "/api/images/{uuid}",
+    where {uuid} corresponds to the return value of this function. For further details of ReST API structure of Surface
+    Streams 2.0 server and further info see https://github.com/b00dle/surface-streams-server.
+
+    :param path: filepath to the image resource
+
+    :return: uuid of the resource created on the server
+    """
     global SERVER_IP
     r = requests.post(
         "http://" + SERVER_IP + ":" + str(SERVER_HTTP_PORT) + "/api/images",
@@ -32,6 +47,16 @@ def upload_image(path):
 
 
 def download_image(uuid, img_folder="CLIENT_DATA/"):
+    """
+    Helper function to download an image resource from the Surface Streams 2.0 server using ReST API calls. After
+    downloading, the image will be saved to: img_filder/uuid.<type>, where <type> is retrieved from content_type of
+    image resource returned over http. For further details of ReST API structure of Surface Streams 2.0 server and
+    further info see https://github.com/b00dle/surface-streams-server.
+
+    :param uuid: uuid of the image resource on the server
+
+    :return: the path of the saved image resource
+    """
     global SERVER_IP
     r = requests.get(
         "http://" + SERVER_IP + ":" + str(SERVER_HTTP_PORT) + "/api/images/" + uuid,
@@ -54,6 +79,18 @@ def download_image(uuid, img_folder="CLIENT_DATA/"):
 
 
 def upload_tracking_config(uuid, tracking_server_url, path):
+    """
+    Helper function to upload a tracking_config JSON formatted file to a Surface Streams remote tracking server. For
+    more info on Surface Streams 2.0 remote tracker see https://github.com/b00dle/surface-streams-remote-tracker.
+
+    :param uuid: uuid of the remote tracking session (assigned by server), see webutils/remote_tracking_session.py
+
+    :param tracking_server_url: full address of the remote tracking service
+
+    :param path: path to the JSON formatted config file
+
+    :return: None
+    """
     if not os.path.exists(path):
         raise ValueError("FAILURE: tracking config does not exist.\n  > got"+path)
     r = requests.put(
@@ -68,6 +105,19 @@ def upload_tracking_config(uuid, tracking_server_url, path):
 
 
 def upload_tracking_resource(uuid, tracking_server_url, path):
+    """
+    Uploads a resource for a remote tracking session. This could for instance be an image referenced by the JSON
+    formatted tracking config file for the respective session. For more info on Surface Streams 2.0 remote tracker see
+    https://github.com/b00dle/surface-streams-remote-tracker.
+
+    :param uuid: uuid of the remote tracking session (assigned by server), see webutils/remote_tracking_session.py
+
+    :param tracking_server_url: full address of the remote tracking service
+
+    :param path: path to the JSON formatted config file
+
+    :return: None
+    """
     if not os.path.exists(path):
         raise ValueError("FAILURE: resource does not exist.\n  > got"+path)
     r = requests.put(
