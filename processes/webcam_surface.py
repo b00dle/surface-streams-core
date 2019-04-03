@@ -15,7 +15,7 @@ class WebcamSurface(ProcessWrapper):
     """
     def __init__(self, server_port, my_port, server_ip="0.0.0.0", my_ip="0.0.0.0", protocol="jpeg",
                  device="/dev/video0", server_stream_width=320, monitor=True,
-                 input_adjustment={"saturation":2.0, "brightness":0.0}):
+                 input_adjustment={}):#input_adjustment={"saturation":2.0, "brightness":0.0}):
         """
         Constructor
 
@@ -59,9 +59,11 @@ class WebcamSurface(ProcessWrapper):
         """
         BC override.
         """
-        gst_videoscale = "videoscale ! " \
+        gst_videoscale_server = "videoscale ! " \
                          "video/x-raw, width=" + str(self._server_stream_width) + ", " \
                          "pixel-aspect-ratio=1/1"
+        gst_videoscale_tracker = "videoscale ! " \
+                                "video/x-raw, width=" + str(640) + ", pixel-aspect-ratio=1/1"
 
         gst_encoding = ""
         if self._protocol == "jpeg":
@@ -83,15 +85,20 @@ class WebcamSurface(ProcessWrapper):
             for key, value in self._input_adjustment.items():
                 self._pipeline_description += str(key) + "=" + str(value) + " "
             self._pipeline_description += "! "
-        #self._pipeline_description += "videobalance saturation=2.0 brightness=+0.1 ! "
-        self._pipeline_description += "aspectratiocrop aspect-ratio=16/9 ! "
+        self._pipeline_description += "aspectratiocrop aspect-ratio=16/9 ! videoflip method=rotate-180 ! "
         self._pipeline_description += "tee name=t ! queue ! "
-        self._pipeline_description += gst_videoscale + " ! "
+        self._pipeline_description += gst_videoscale_server + " ! "
         self._pipeline_description += gst_encoding + " ! "
         self._pipeline_description += "udpsink port=" + str(self._server_port) + " host=" + str(self._server_ip) + "  "
         self._pipeline_description += "t. ! queue ! "
+        self._pipeline_description += gst_videoscale_tracker + " ! "
         self._pipeline_description += gst_encoding + " ! "
-        self._pipeline_description += "udpsink port=" + str(self._my_port) + " host=" + str(self._my_ip) + "  "
+
+        if self._my_ip != "0.0.0.0":
+            self._pipeline_description += "udpsink port=" + str(self._my_port) + " host=" + str(self._my_ip) + "  "
+        else:
+            self._pipeline_description += "udpsink port=" + str(self._my_port) + "  "
+
         if self._monitor:
             self._pipeline_description += "t. ! queue ! fpsdisplaysink"
 

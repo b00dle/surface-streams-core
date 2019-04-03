@@ -359,15 +359,13 @@ if __name__ == "__main__":
                 int(pointers[ptr_key].radius*2.0)
             )
         # draw gathered erasers
-        np_erase_paths = []
         for ptr_key, path in erase_paths.items():
             if len(path) <= 1:
                 continue
-            np_erase_paths.append(np.array([p for p in path], np.int32))
+            eraser_path = np.array([p for p in path], np.int32)
             erase_paths[ptr_key] = [path[-1]]
-        if len(np_erase_paths) > 0:
             cv.polylines(
-                path_frame, np_erase_paths, False, (0, 0, 0),
+                path_frame, [eraser_path], False, (0, 0, 0),
                 int(pointers[ptr_key].radius*2.0)
             )
         # draw gathered points
