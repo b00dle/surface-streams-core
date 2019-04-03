@@ -211,7 +211,7 @@ class TuioTrackingConfigParser(object):
         resource = tracking_info.matching_resource
         if len(tracking_info.varying_upload_resource) > 0:
             resource = tracking_info.varying_upload_resource
-        img = cv.imread(resource, 0)
+        img = cv.imread(self.get_full_resource_path(resource), 0)
         h, w = img.shape
         res = [w, h]
         if len(tracking_info.fixed_resource_scale) == 2:
