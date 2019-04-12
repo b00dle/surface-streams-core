@@ -2,7 +2,7 @@
 This script contains constant protocol based gstreamer caps to establish video stream receiving.
 """
 
-JPEG_CAPS = "application/x-rtp, " \
+JPEG_CAPS_ALT = "application/x-rtp, " \
             "media=(string)application, " \
             "clock-rate=(int)90000, " \
             "encoding-name=(string)X-GST, " \
@@ -13,7 +13,7 @@ JPEG_CAPS = "application/x-rtp, " \
             "timestamp-offset=(uint)3095164038, " \
             "seqnum-offset=(uint)16152"
 
-VP8_CAPS = "application/x-rtp, " \
+VP8_CAPS_ALT = "application/x-rtp, " \
            "media=(string)video, " \
            "clock-rate=(int)90000, " \
            "encoding-name=(string)VP8-DRAFT-IETF-01, " \
@@ -22,7 +22,7 @@ VP8_CAPS = "application/x-rtp, " \
            "clock-base=(uint)275641083, " \
            "seqnum-base=(uint)34810"
 
-VP9_CAPS = "application/x-rtp, " \
+VP9_CAPS_ALT = "application/x-rtp, " \
            "media=video, " \
            "clock-rate=90000, " \
            "encoding-name=VP9, " \
@@ -32,7 +32,7 @@ VP9_CAPS = "application/x-rtp, " \
            "seqnum-offset=7023, " \
            "a-framerate=23.976023976023978"
 
-MP4_CAPS = "application/x-rtp, " \
+MP4_CAPS_ALT = "application/x-rtp, " \
            "media=(string)video, " \
            "clock-rate=(int)90000, " \
            "encoding-name=(string)MP4V-ES, " \
@@ -43,7 +43,6 @@ MP4_CAPS = "application/x-rtp, " \
            "timestamp-offset=(uint)391825150, " \
            "seqnum-offset=(uint)2980"
 
-H264_CAPS = "application/x-rtp, media=video, clock-rate=90000, payload=96"
 
 H264_CAPS_ALT = "application/x-rtp, " \
             "media=video, " \
@@ -57,7 +56,7 @@ H264_CAPS_ALT = "application/x-rtp, " \
             "seqnum-offset=7366, " \
             "a-framerate=25"
 
-H265_CAPS = "application/x-rtp, " \
+H265_CAPS_ALT = "application/x-rtp, " \
             "media=video, " \
             "payload=96, " \
             "clock-rate=90000, " \
@@ -66,3 +65,11 @@ H265_CAPS = "application/x-rtp, " \
             "timestamp-offset=1863230164, " \
             "seqnum-offset=12204, " \
             "a-framerate=23.976023976023978"
+
+DEFAULT_CAPS = "application/x-rtp, media=video, clock-rate=90000, payload=96"
+H264_CAPS = DEFAULT_CAPS
+H265_CAPS = DEFAULT_CAPS
+VP8_CAPS = DEFAULT_CAPS
+VP9_CAPS = DEFAULT_CAPS
+MP4_CAPS = DEFAULT_CAPS
+JPEG_CAPS = DEFAULT_CAPS
