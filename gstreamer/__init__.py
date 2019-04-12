@@ -71,5 +71,6 @@ H264_CAPS = DEFAULT_CAPS + ", encoding-name=H264"
 H265_CAPS = DEFAULT_CAPS + ", encoding-name=H265"
 VP8_CAPS = DEFAULT_CAPS + ", encoding-name=VP8"
 VP9_CAPS = DEFAULT_CAPS + ", encoding-name=VP9"
-MP4_CAPS = DEFAULT_CAPS + ", encoding-name=MP4V-ES, profile-level-id=1"
+MP4_CAPS = DEFAULT_CAPS + ", encoding-name=MP4V-ES, a-framerate=10, profile-level-id=1, " \
+          "config=000001b001000001b58913000001000000012000c48d88005514042d1443000001b24c61766335362e36302e313030"
 JPEG_CAPS = "application/x-rtp, media=application, clock-rate=90000, payload=96, encoding-name=X-GST"
