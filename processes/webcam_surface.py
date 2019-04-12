@@ -75,9 +75,9 @@ class WebcamSurface(ProcessWrapper):
         elif self._protocol == "mp4":
             gst_encoding += "avenc_mpeg4 ! rtpmp4vpay"
         elif self._protocol == "h264":
-            gst_encoding += "avenc_h264 ! rtph264pay"
+            gst_encoding += "x264enc tune=zerolatency ! rtph264pay"
         elif self._protocol == "h265":
-            gst_encoding += "avenc_h264 ! rtph265pay"
+            gst_encoding += "x265enc tune=zerolatency ! rtph265pay"
 
         self._pipeline_description += "v4l2src device="+str(self._device)+" ! decodebin ! videoconvert ! "
         if len(self._input_adjustment) > 0:
