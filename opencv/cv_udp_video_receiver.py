@@ -32,30 +32,30 @@ class CvUdpVideoReceiver(object):
         self._init_capture()
 
     def _init_capture(self):
-        self._pipeline_description = "udpsrc port="+str(self._port) + " ! "
+        self._pipeline_description = "udpsrc port="+str(self._port) + " "
 
         if self._protocol == "jpeg":
-            self._pipeline_description += gstreamer.JPEG_CAPS + " ! queue ! "
+            self._pipeline_description += "caps=\"" + gstreamer.JPEG_CAPS + "\" ! queue ! "
             self._pipeline_description += "rtpgstdepay ! "
             self._pipeline_description += "jpegdec ! "
         elif self._protocol == "vp8":
-            self._pipeline_description += gstreamer.VP8_CAPS + " ! queue ! "
+            self._pipeline_description += "caps=\"" + gstreamer.VP8_CAPS + "\" ! queue ! "
             self._pipeline_description += "rtpvp8depay ! "
             self._pipeline_description += "vp8dec ! "
         elif self._protocol == "vp9":
-            self._pipeline_description += gstreamer.VP9_CAPS + " ! queue ! "
+            self._pipeline_description += "caps=\"" + gstreamer.VP9_CAPS + "\" ! queue ! "
             self._pipeline_description += "rtpvp9depay ! "
             self._pipeline_description += "vp9dec ! "
         elif self._protocol == "mp4":
-            self._pipeline_description += gstreamer.MP4_CAPS + " ! queue ! "
+            self._pipeline_description += "caps=\"" + gstreamer.MP4_CAPS + "\" ! queue ! "
             self._pipeline_description += "rtpmp4vdepay ! "
             self._pipeline_description += "avdec_mpeg4 ! "
         elif self._protocol == "h264":
-            self._pipeline_description += gstreamer.H264_CAPS + " ! queue ! "
+            self._pipeline_description += "caps=\"" + gstreamer.H264_CAPS + "\" ! queue ! "
             self._pipeline_description += "rtph264depay ! "
             self._pipeline_description += "avdec_h264 ! "
         elif self._protocol == "h265":
-            self._pipeline_description += gstreamer.H265_CAPS + " ! queue ! "
+            self._pipeline_description += "caps=\"" + gstreamer.H265_CAPS + "\" ! queue ! "
             self._pipeline_description += "rtph265depay ! "
             self._pipeline_description += "avdec_h265 ! "
 
