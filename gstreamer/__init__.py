@@ -43,7 +43,9 @@ MP4_CAPS = "application/x-rtp, " \
            "timestamp-offset=(uint)391825150, " \
            "seqnum-offset=(uint)2980"
 
-H264_CAPS = "application/x-rtp, " \
+H264_CAPS = "application/x-rtp, media=video, clock-rate=90000, payload=96"
+
+H264_CAPS_ALT = "application/x-rtp, " \
             "media=video, " \
             "clock-rate=90000, " \
             "encoding-name=H264, " \
