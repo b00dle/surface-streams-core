@@ -67,9 +67,9 @@ H265_CAPS_ALT = "application/x-rtp, " \
             "a-framerate=23.976023976023978"
 
 DEFAULT_CAPS = "application/x-rtp, media=video, clock-rate=90000, payload=96"
-H264_CAPS = DEFAULT_CAPS
-H265_CAPS = DEFAULT_CAPS
-VP8_CAPS = DEFAULT_CAPS
-VP9_CAPS = DEFAULT_CAPS
-MP4_CAPS = DEFAULT_CAPS
-JPEG_CAPS = DEFAULT_CAPS
+H264_CAPS = DEFAULT_CAPS + ", encoding-name=H264"
+H265_CAPS = DEFAULT_CAPS + ", encoding-name=H265"
+VP8_CAPS = DEFAULT_CAPS + ", encoding-name=VP8"
+VP9_CAPS = DEFAULT_CAPS + ", encoding-name=VP9"
+MP4_CAPS = DEFAULT_CAPS + ", encoding-name=MP4V-ES"
+JPEG_CAPS = DEFAULT_CAPS + ", encoding-name=X-GST"
