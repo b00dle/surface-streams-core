@@ -57,7 +57,7 @@ class CvUdpVideoReceiver(object):
         elif self._protocol == "h265":
             self._pipeline_description += gstreamer.H265_CAPS + " ! queue ! "
             self._pipeline_description += "rtph265depay ! "
-            self._pipeline_description += "avdec_h264 ! "
+            self._pipeline_description += "avdec_h265 ! "
 
         if self._width > 0:
             self._pipeline_description += "videoconvert ! videoscale ! video/x-raw, width=" + str(self._width) + \
