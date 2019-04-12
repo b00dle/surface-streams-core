@@ -160,7 +160,7 @@ class UdpVideoMixer(GstPipeline):
         elif client["video_protocol"] == "h265":
             udp_src.set_property("caps", Gst.caps_from_string(gstreamer.H265_CAPS))
             rtp_depay = self.make_add_element("rtph265depay", "h265_depay" + str(i))
-            extra_parse = self.make_add_element("h265parse", "extra_parse" + str(i))
+            #extra_parse = self.make_add_element("h265parse", "extra_parse" + str(i))
             #extra_parse.set_property("disable-passthrough", True)
             #extra_parse.set_property("config-interval", 1)
             decoder = self.make_add_element("avdec_h265", "h265_decoder" + str(i))
