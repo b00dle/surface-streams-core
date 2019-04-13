@@ -117,7 +117,8 @@ class UdpStatsMonitor(object):
             element.get_property("port")
         )
         if self._pad_probe_id is None:
-            self._pad_probe_id = element.get_static_pad("sink").add_probe(Gst.PadProbeType.PUSH, self._increment_buffer_count)
+            self._pad_probe_id = element.get_static_pad("sink").add_probe(
+                Gst.PadProbeType.DATA_DOWNSTREAM, self._increment_buffer_count)
         stats = {
             data.nth_field_name(n): data.get_value(data.nth_field_name(n))
             for n in range(0, data.n_fields())
